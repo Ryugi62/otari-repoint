@@ -1,0 +1,28 @@
+database_url: "sqlite+aiosqlite:////tmp/otari-smoke.db"
+master_key: mk-REDACTED
+require_pricing: true
+provider_allow_private_hosts: true
+import_configured_providers: false
+web_fetch_enabled: true
+sandbox_url: http://sandbox:8080
+guardrails_url: http://host.docker.internal:9100
+providers:
+  stuba: {provider_type: openai, api_base: "http://host.docker.internal:9100/a/v1", api_key: x, models: [model-a]}
+  stubb: {provider_type: openai, api_base: "http://host.docker.internal:9100/b/v1", api_key: x, models: [model-b]}
+  stubc: {provider_type: openai, api_base: "http://host.docker.internal:9100/c/v1", api_key: x, models: [model-c]}
+pricing:
+  stuba:model-a: {input_price_per_million: 100, output_price_per_million: 100}
+  stubb:model-b: {input_price_per_million: 100, output_price_per_million: 100}
+  stubc:model-c: {input_price_per_million: 100, output_price_per_million: 100}
+  otari:web_fetch: {input_price_per_million: 10000, output_price_per_million: 0}
+  otari:code_execution: {input_price_per_million: 10000, output_price_per_million: 0}
+routing:
+  policies:
+    fb:
+      select: [{default: "stuba:model-a"}]
+      on_failure: ["stubb:model-b"]
+budgets:
+  tiny: {max_budget: 0.2}
+api_keys:
+  keya: {secret: tk-REDACTED, user_id: ua}
+  keyb: {secret: tk-REDACTED, user_id: ub, ceiling: tiny}
