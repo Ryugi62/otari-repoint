@@ -1,0 +1,12 @@
+# Reproduces FRICTION F1. Run with: otari serve --config this-file, then call model "g_openai:gemma-4-31b-it".
+# Env: MK (master key), KK (an API key starting with tk-, 50+ chars), GEMINI_API_KEY (Google AI Studio key).
+database_url: "sqlite+aiosqlite:////tmp/f1.db"
+master_key: ${MK}
+require_pricing: true
+import_configured_providers: false
+providers:
+  g_openai: {provider_type: openai, api_base: "https://generativelanguage.googleapis.com/v1beta/openai", api_key: "${GEMINI_API_KEY}", models: [gemma-4-31b-it]}
+pricing:
+  g_openai:gemma-4-31b-it: {input_price_per_million: 1, output_price_per_million: 3}
+api_keys:
+  k: {secret: "${KK}", user_id: u}

@@ -1,0 +1,38 @@
+# Self-hosted Otari config (mzdotai/otari). Secrets come from env via ${VAR}.
+database_url: "sqlite+aiosqlite:////tmp/otari-repoint.db"
+master_key: ${OTARI_MASTER_KEY}
+require_pricing: true
+import_configured_providers: false
+web_fetch_enabled: true
+sandbox_url: http://sandbox:8080
+guardrails_url: http://guardrails:9100
+provider_allow_private_hosts: true
+mcp_allow_private_hosts: true
+providers:
+  # open-weight, role "worker": Gemma 4 26B-A4B (mixture of experts, small active params)
+  gemma_small: {provider_type: gemini, api_key: "${GEMINI_API_KEY}", models: [gemma-4-26b-a4b-it]}
+  # open-weight, role "judge": Gemma 4 31B (dense)
+  gemma_large: {provider_type: gemini, api_key: "${GEMINI_API_KEY}", models: [gemma-4-31b-it]}
+  # commercial baseline column of the port table (NOT open-weight)
+  baseline: {provider_type: gemini, api_key: "${GEMINI_API_KEY}", models: [gemini-3.5-flash-lite]}
+  # deliberately broken deployment: real upstream returns 404 for this model name (fault injection for fallback)
+  gemma_retired: {provider_type: gemini, api_key: "${GEMINI_API_KEY}", models: [gemma-3-retired-model]}
+pricing:
+  # Nominal shadow prices (USD per 1M tokens) so budget enforcement can be metered. Real cost on the free tier is 0.
+  gemma_small:gemma-4-26b-a4b-it: {input_price_per_million: 1, output_price_per_million: 3}
+  gemma_large:gemma-4-31b-it: {input_price_per_million: 1, output_price_per_million: 3}
+  baseline:gemini-3.5-flash-lite: {input_price_per_million: 1, output_price_per_million: 3}
+  gemma_retired:gemma-3-retired-model: {input_price_per_million: 1, output_price_per_million: 3}
+  otari:web_fetch: {input_price_per_million: 10, output_price_per_million: 0}
+  otari:code_execution: {input_price_per_million: 10, output_price_per_million: 0}
+routing:
+  policies:
+    fb:
+      select: [{default: "gemma_retired:gemma-3-retired-model"}]
+      on_failure: ["gemma_small:gemma-4-26b-a4b-it", "gemma_large:gemma-4-31b-it"]
+budgets:
+  main: {max_budget: 50}
+  tiny: {max_budget: 0.0006}
+api_keys:
+  main: {secret: "${GW_KEY_MAIN}", user_id: repoint-main, ceiling: main}
+  capped: {secret: "${GW_KEY_CAPPED}", user_id: repoint-capped, ceiling: tiny}

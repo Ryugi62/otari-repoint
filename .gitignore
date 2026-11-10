@@ -1,4 +1,6 @@
-keys.env
-stub.pid
 .venv/
 __pycache__/
+.pytest_cache/
+.env
+smoke/keys.env
+smoke/stub.pid

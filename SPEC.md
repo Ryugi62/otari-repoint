@@ -26,7 +26,8 @@ kind: service
 
 ## 2. 제약
 - 호스티드 Otari.ai 사용이 필수 요건("You must use Otari.ai in your project"). 로컬 셀프호스트 스모크는 기능 동작의 대리 증거일 뿐 제출 증거가 아님.
-- 비용 0원 원칙: 업스트림 호출은 가짜 서버로 시험, 실제 오픈웨이트 호출은 승인 뒤.
+- 비용 0원 원칙: 단위 시험은 가짜 GatewayPort로, 실호출은 Google AI Studio 무료 티어(기존 키)의 Gemma 4 26B-A4B(worker)·Gemma 4 31B(judge) 2종 오픈웨이트로 한다(v0.2 승인: MAIN 지시 2026-11-10). 결제·유료 가입 금지. 상용 대조 열(baseline)은 gemini-3.5-flash-lite 1종, 오픈웨이트로 세지 않는다.
+- 업스트림 연결은 provider_type gemini(네이티브). provider_type openai + Gemini OpenAI 호환 엔드포인트는 Otari가 safety_identifier를 붙여 400이 난다(docs/FRICTION.md F1).
 
 ## 3. 유비쿼터스 언어
 | 용어 | 뜻 | 코드 이름 |
@@ -70,3 +71,4 @@ domain/ <- application/ <- adapters/(otari_http) <- infrastructure/(config, comp
 
 ## 10. 변경 이력
 - v0.1 2026-10-31 최초
+- v0.2 2026-11-10 구현: domain/application/adapters/infrastructure, 과제 12 x 모델 3, 기능 6종 실호출 로그(logs/), docker compose 한 명령 재현. 오픈웨이트는 gpt-oss/Mistral/qwen이 아니라 Gemma 4 2종(무료 티어 가용분). 호스티드 Otari.ai는 OTARI_BASE_URL/OTARI_API_KEY만 바꿔 같은 코드로 실행(미실측).

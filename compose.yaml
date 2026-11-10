@@ -1,0 +1,38 @@
+# docker compose up --build --abort-on-container-exit --exit-code-from repoint
+name: otari-repoint
+services:
+  guardrails:
+    image: python:3.12-slim
+    command: ["python", "/app/infrastructure/guardrail_service.py", "9100"]
+    volumes: ["./infrastructure:/app/infrastructure:ro"]
+  sandbox:
+    image: mzdotai/otari-sandbox-container:latest
+  otari:
+    image: mzdotai/otari:latest
+    command: ["otari", "serve", "--config", "/app/config.yml"]
+    environment:
+      OTARI_PROVIDER_ACCOUNT_PEPPER: ${OTARI_PROVIDER_ACCOUNT_PEPPER:-repoint-local-pepper-0123456789abcdef0123456789abcdef}
+      OTARI_MASTER_KEY: ${OTARI_MASTER_KEY:-repoint-local-master}
+      GW_KEY_MAIN: ${OTARI_API_KEY:-tk-repoint-demo-main-q7Zk2Vx9Lm4Rt8Bw3Hn6Jc5Pd1Ea4Us0Yo}
+      GW_KEY_CAPPED: ${OTARI_CAPPED_KEY:-tk-repoint-demo-capped-f3Gy8Ns2Qa7Wu4Xe9Ki6Ob1Tz5Hv2Mj8Rd}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY in .env}
+    volumes: ["./infrastructure/gateway/config.yml:/app/config.yml:ro"]
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on: [sandbox, guardrails]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 3s
+      retries: 30
+  repoint:
+    image: python:3.12-slim
+    working_dir: /work
+    command: ["python", "-m", "infrastructure.cli", "run-all"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      OTARI_BASE_URL: ${OTARI_BASE_URL:-http://otari:8000}
+      OTARI_API_KEY: ${OTARI_API_KEY:-tk-repoint-demo-main-q7Zk2Vx9Lm4Rt8Bw3Hn6Jc5Pd1Ea4Us0Yo}
+      OTARI_CAPPED_KEY: ${OTARI_CAPPED_KEY:-tk-repoint-demo-capped-f3Gy8Ns2Qa7Wu4Xe9Ki6Ob1Tz5Hv2Mj8Rd}
+      OTARI_MASTER_KEY: ${OTARI_MASTER_KEY:-repoint-local-master}
+    volumes: ["./:/work"]
+    depends_on:
+      otari: {condition: service_healthy}
