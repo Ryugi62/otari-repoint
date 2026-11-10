@@ -28,7 +28,7 @@ Each item says what was observed, how to reproduce it, and how sure we are. Dupl
 - Confidence: high (all hit during this build).
 
 ## F5. Free-tier open-weight upstream is unreliable (not an Otari defect)
-- Observed in the committed run: `gemma-4-31b-it` returned 5xx on a large share of calls and `gemma-4-26b-a4b-it` on a smaller share (table in README, counted from `logs/http.jsonl`). Calls with the code-execution tool on the 31B model failed repeatedly before the 26B model succeeded.
+- Observed in the committed run: `gemma-4-31b-it` returned 5xx on a large share of calls and `gemma-4-26b-a4b-it` on a smaller share (table in README, counted from `logs/http.jsonl`). In the committed run the code-execution call on the 31B model succeeded only after earlier 5xx replies; in an earlier uncommitted run it returned 5xx 8 times in a row before the 26B model answered.
 - Not isolated: whether tool declarations make the 31B model fail more often than plain prompts (the sample is too small and mixed with general overload).
 - Gemma 4 31B on Google's OpenAI-compatible endpoint placed its reasoning inside the message content as a `<thought>...</thought>` span in one direct call made while building (outside the gateway); through the gateway's native `gemini` provider the reasoning came back in a separate `reasoning` field. The task checks strip the span anyway and flag it.
 

@@ -79,6 +79,9 @@ def provider_stats_markdown(http_path: str) -> str:
 
 
 def judge_markdown(path: str) -> str:
+    import os
+    if not os.path.exists(path):
+        return "**Not measured in the committed run**: `python3 -m infrastructure.cli judge` (part of `run-all`) was interrupted when the local container runtime stopped; no model-decided verdicts exist yet, so this snapshot has zero."
     d = json.load(open(path))
     s = d["summary"]
     rows = ["| measure | count |", "|---|---|",

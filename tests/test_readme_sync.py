@@ -8,7 +8,7 @@ from infrastructure import render
 from infrastructure.config import DEFAULT_MODELS, parse_models
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
-NEEDED = ["README.md", "results/matrix.json", "results/judge.json", "logs/features.jsonl", "logs/http.jsonl"]
+NEEDED = ["README.md", "results/matrix.json", "logs/features.jsonl", "logs/http.jsonl"]
 
 
 def block(text, name):
