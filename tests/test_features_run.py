@@ -41,7 +41,9 @@ CFG = FeatureConfig("fb", "gemma_small:x", "gemma_large:y", "baseline:z", capped
 
 def test_all_six_features_traced_and_scored_60():
     rep = run_features(Fake(), CFG, sleep=lambda s: None)
-    assert {t.kind for t in rep.traces} == set(FeatureKind) and rep.score == 60 and not rep.failures
+    new = {FeatureKind.MCP, FeatureKind.PER_USER_BUDGET}
+    assert {t.kind for t in rep.traces} == set(FeatureKind) - new and rep.score == 60
+    assert set(rep.failures) == {"mcp_integrations", "per_user_budgets"}
     assert {e.rule for _, e, _ in rep.enforcements} == {"budget", "guardrail:prompt-injection"}
 
 
@@ -104,3 +106,53 @@ def test_budget_probe_asks_for_a_long_answer_so_the_ceiling_is_reached_in_few_ca
             return super().complete(model, messages, label, **kw)
     run_features(Rec(), CFG, sleep=lambda s: None)
     assert seen and "150 words" in seen[0][0] and seen[0][1] >= 300
+
+
+class FakeNew(Fake):
+    """Adds the hosted-only calls: MCP via a stored server id, end users via the `user` field of a service key."""
+    def __init__(self):
+        super().__init__()
+        self.spent = {}
+
+    def complete(self, model, messages, label, tools=None, guardrails=None, max_tokens=None, api_key=None, extra=None, headers=None):
+        h = {"otari-request-id": "rid-" + label}
+        if label.startswith("feature:mcp"):
+            assert extra == {"mcp_server_ids": ["srv-1"]}
+            return GatewayResponse(200, h, {"choices": [{"message": {"content": "2 rules"}}],
+                                            "otari_tool_calls": [{"type": "mcp", "name": "rules__list_operating_rules", "status": "completed"}]}, "rid-m", "http.jsonl:8")
+        if label.startswith("feature:per_user"):
+            user = extra["user"]
+            assert api_key == "tk-service"
+            self.spent[user] = self.spent.get(user, 0) + 1
+            if user == "agent-low" and self.spent[user] > 2:
+                return GatewayResponse(403, h, {"detail": "End user budget exhausted", "code": "budget_exceeded"}, "rid-u", "http.jsonl:9")
+            return GatewayResponse(200, h, {"choices": [{"message": {"content": "PONG"}}]}, "rid-uu", "http.jsonl:9")
+        return super().complete(model, messages, label, tools=tools, guardrails=guardrails, max_tokens=max_tokens, api_key=api_key)
+
+
+NEW_CFG = FeatureConfig("fb", "gemma_small:x", "gemma_large:y", "baseline:z", capped_key="tk-capped",
+                        mcp_server_id="srv-1", user_key="tk-service", users=("agent-low", "agent-high"))
+
+
+def test_mcp_and_per_user_budget_are_traced_when_configured():
+    rep = run_features(FakeNew(), NEW_CFG, sleep=lambda s: None)
+    kinds = {t.kind for t in rep.traces}
+    assert FeatureKind.MCP in kinds and FeatureKind.PER_USER_BUDGET in kinds and rep.score == 60 and not rep.failures
+    rules = {e.rule for _, e, _ in rep.enforcements}
+    assert "per_user_budget:agent-low" in rules
+
+
+def test_unconfigured_mcp_and_per_user_budget_are_named_failures_not_traces():
+    rep = run_features(Fake(), CFG, sleep=lambda s: None)
+    assert {"mcp_integrations", "per_user_budgets"} <= set(rep.failures)
+    assert FeatureKind.MCP not in {t.kind for t in rep.traces}
+
+
+def test_per_user_budget_needs_both_users_the_blocked_one_and_the_passing_one():
+    class BothBlocked(FakeNew):
+        def complete(self, model, messages, label, **kw):
+            if label.startswith("feature:per_user"):
+                return GatewayResponse(403, {"otari-request-id": "x"}, {"detail": "x", "code": "budget_exceeded"}, "rid", "http.jsonl:9")
+            return super().complete(model, messages, label, **kw)
+    rep = run_features(BothBlocked(), NEW_CFG, sleep=lambda s: None)
+    assert FeatureKind.PER_USER_BUDGET not in {t.kind for t in rep.traces} and "per_user_budgets" in rep.failures

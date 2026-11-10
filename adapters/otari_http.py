@@ -23,9 +23,11 @@ class OtariHttp:
         self.log = log
         self.timeout = timeout
 
-    def _call(self, method: str, path: str, label: str, body: Optional[dict], key: str) -> GatewayResponse:
+    def _call(self, method: str, path: str, label: str, body: Optional[dict], key: str,
+              extra_headers: Optional[Dict[str, str]] = None) -> GatewayResponse:
         url = self.base + self.prefix + path
         req_headers = {"Authorization": "Bearer " + key, "Content-Type": "application/json"}
+        req_headers.update(extra_headers or {})
         data = json.dumps(body).encode() if body is not None else None
         t0 = time.time()
         status, headers, raw, err = 0, {}, b"", ""
@@ -51,7 +53,8 @@ class OtariHttp:
 
     def complete(self, model: str, messages: List[Dict[str, str]], label: str, *, tools: Optional[List[dict]] = None,
                  guardrails: Optional[List[dict]] = None, max_tokens: Optional[int] = None,
-                 api_key: Optional[str] = None) -> GatewayResponse:
+                 api_key: Optional[str] = None, extra: Optional[Dict[str, Any]] = None,
+                 headers: Optional[Dict[str, str]] = None) -> GatewayResponse:
         body: Dict[str, Any] = {"model": model, "messages": messages, "temperature": 0}
         if max_tokens:
             body["max_tokens"] = max_tokens
@@ -59,7 +62,8 @@ class OtariHttp:
             body["tools"] = tools
         if guardrails:
             body["guardrails"] = guardrails
-        return self._call("POST", "/chat/completions", label, body, api_key or self.key)
+        body.update(extra or {})  # top-level request fields such as mcp_server_ids or user
+        return self._call("POST", "/chat/completions", label, body, api_key or self.key, headers)
 
     def usage_rows(self, request_id: str) -> List[dict]:
         """Operator view (master key) gives per-meter rows; with only an API key the settlement record is returned."""

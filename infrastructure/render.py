@@ -16,6 +16,8 @@ FEATURE_LABEL = {
     "budget": "Budgets and spending limits",
     "multi_model_roles": "Multiple models, distinct roles",
     "guardrails": "Guardrails",
+    "mcp_integrations": "MCP integrations",
+    "per_user_budgets": "Per-user budgets",
 }
 
 
@@ -25,6 +27,8 @@ CALL = {
     "code_execution": 'tools=[{"type":"otari_code_execution"}]',
     "budget": "API key of a workspace with a $0.0006 spend ceiling, repeated until blocked",
     "multi_model_roles": "worker call, then judge call, two different open-weight models",
+    "mcp_integrations": 'mcp_server_ids=[<workspace-stored MCP server>] (managed tool loop)',
+    "per_user_budgets": 'service key + user="agent-low" / "agent-high" on different end-user budgets',
     "guardrails": 'guardrails=[{"profile":"prompt-injection","mode":"block","url":"<guardrail service>"}]',
 }
 

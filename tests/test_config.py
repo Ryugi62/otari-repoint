@@ -41,3 +41,21 @@ def test_guardrail_url_and_run_models_come_from_env_and_file(monkeypatch, tmp_pa
     save_run_models(p, ms)
     assert load_run_models(p) == ms
     assert load_run_models(str(tmp_path / "none.json")) == parse_models(DEFAULT_MODELS)
+
+
+def test_mcp_and_end_user_settings_come_from_env(monkeypatch):
+    monkeypatch.setenv("OTARI_API_KEY", "tk-x")
+    monkeypatch.setenv("REPOINT_MCP_SERVER_ID", "srv-1")
+    monkeypatch.setenv("OTARI_SERVICE_KEY", "tk-svc")
+    monkeypatch.setenv("REPOINT_END_USERS", "u-low,u-high")
+    monkeypatch.setenv("REPOINT_END_USER_BUDGETS", "b-low,b-high")
+    s = load()
+    assert (s.mcp_server_id, s.service_key, s.end_users, s.end_user_budgets) == ("srv-1", "tk-svc", ("u-low", "u-high"), ("b-low", "b-high"))
+
+
+def test_end_user_defaults_when_unset(monkeypatch):
+    monkeypatch.setenv("OTARI_API_KEY", "tk-x")
+    for k in ("REPOINT_MCP_SERVER_ID", "OTARI_SERVICE_KEY", "REPOINT_END_USERS", "REPOINT_END_USER_BUDGETS"):
+        monkeypatch.delenv(k, raising=False)
+    s = load()
+    assert s.mcp_server_id is None and s.service_key is None and s.end_users == ("agent-low", "agent-high") and s.end_user_budgets == (None, None)

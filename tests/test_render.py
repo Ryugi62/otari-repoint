@@ -20,4 +20,4 @@ def test_feature_without_trace_is_shown_as_not_demonstrated(tmp_path):
     p = tmp_path / "f.jsonl"
     p.write_text(json.dumps({"feature": "web_fetch", "request_id": "r1", "model": "m", "evidence": "e"}) + "\n")
     md = render.features_markdown(str(p))
-    assert "`r1`" in md and md.count("not demonstrated") == 5
+    assert "`r1`" in md and md.count("not demonstrated") == 7

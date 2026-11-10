@@ -28,7 +28,8 @@ class GatewayResponse:
 class GatewayPort(Protocol):
     def complete(self, model: str, messages: List[Dict[str, str]], label: str, *, tools: Optional[List[dict]] = None,
                  guardrails: Optional[List[dict]] = None, max_tokens: Optional[int] = None,
-                 api_key: Optional[str] = None) -> GatewayResponse: ...
+                 api_key: Optional[str] = None, extra: Optional[Dict[str, Any]] = None,
+                 headers: Optional[Dict[str, str]] = None) -> GatewayResponse: ...
 
     def usage_rows(self, request_id: str) -> List[dict]: ...
 

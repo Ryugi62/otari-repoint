@@ -1,4 +1,4 @@
-"""FeatureKind (the six Otari capabilities scored by the rubric) and FeatureTrace (proof a feature was used)."""
+"""FeatureKind (the eight Otari capabilities listed by the rubric; the score counts at most six) and FeatureTrace (proof a feature was used)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -16,6 +16,8 @@ class FeatureKind(Enum):
     BUDGET = "budget"
     MULTI_MODEL_ROLES = "multi_model_roles"
     GUARDRAILS = "guardrails"
+    MCP = "mcp_integrations"
+    PER_USER_BUDGET = "per_user_budgets"
 
 
 @dataclass(frozen=True)

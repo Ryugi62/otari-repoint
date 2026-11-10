@@ -7,6 +7,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from application.ports import GatewayPort, GatewayResponse
 from application.traces import trace_from_headers
+import dataclasses
+
 from domain.enforcement import Enforcement, classify_block
 from domain.features import FeatureKind, FeatureTrace, feature_score
 
@@ -22,6 +24,10 @@ class FeatureConfig:
     baseline: str               # commercial baseline (non open-weight) used only where open-weight models failed
     capped_key: Optional[str]   # API key with a tiny budget ceiling
     guardrail_profile: str = "prompt-injection"
+    mcp_server_id: Optional[str] = None  # id of an MCP server stored in the workspace (hosted refuses inline URLs unless allowed)
+    user_key: Optional[str] = None       # service key: a request may name an end user in `user`
+    users: Tuple[str, str] = ("agent-low", "agent-high")   # (user on a tiny budget, user on a roomy budget)
+    user_budgets: Tuple[Optional[str], Optional[str]] = (None, None)  # budget ids named in Otari-End-User-Budget when the user is first seen
     guardrail_url: Optional[str] = None  # hosted: the public https endpoint of the guardrails service (request-level `url`)
 
 
@@ -174,4 +180,65 @@ def run_features(gw: GatewayPort, cfg: FeatureConfig, sleep: Callable[[float], N
                                        'injection -> HTTP %d rule=%s upstream_called=%s; benign -> otari-guardrails: %s [%s, %s]' % (bad.status, e.rule, e.upstream_called, passed, bad.log_ref, good.log_ref), cfg.baseline))
     else:
         rep.failures["guardrails"] = "injection was not blocked: HTTP %s" % bad.status
+    _mcp(gw, cfg, rep, sleep)
+    _per_user_budget(gw, cfg, rep, sleep)
     return rep
+
+
+def _mcp_calls(resp: GatewayResponse) -> List[dict]:
+    body = resp.body if isinstance(resp.body, dict) else {}
+    return [c for c in body.get("otari_tool_calls", []) if "mcp" in str(c.get("type", "")).lower() and c.get("status") == "completed"]
+
+
+def _mcp(gw, cfg, rep, sleep) -> None:
+    """7) MCP: the gateway runs the model/tool loop against a workspace-stored MCP server; evidence = a completed mcp tool call."""
+    if not cfg.mcp_server_id:
+        rep.failures["mcp_integrations"] = "no MCP server id configured"
+        return
+    ask = [{"role": "user", "content": "Use the MCP tool to list our operating rules, then tell me how many rules there are."}]
+    for _ in range(3):
+        r = _retry(lambda: gw.complete(cfg.worker, ask, "feature:mcp", max_tokens=1024, extra={"mcp_server_ids": [cfg.mcp_server_id]}), sleep)
+        _note(rep, "mcp_integrations", cfg.worker, r)
+        calls = _mcp_calls(r) if r.ok else []
+        if calls:
+            rep.traces.append(FeatureTrace(FeatureKind.MCP, r.request_id, "otari_tool_calls: type=%s name=%s status=completed [%s]" % (
+                calls[0].get("type"), calls[0].get("name"), r.log_ref), cfg.worker))
+            return
+    rep.failures["mcp_integrations"] = "no response carried a completed MCP tool call (last HTTP %s)" % r.status
+
+
+def _per_user_budget(gw, cfg, rep, sleep) -> None:
+    """8) Per-user budgets: one service key, two end users on different budgets; the tiny one is blocked, the roomy one passes."""
+    if not cfg.user_key:
+        rep.failures["per_user_budgets"] = "no service key configured"
+        return
+    low, high = cfg.users
+    spend = [{"role": "user", "content": "Write a paragraph of about 150 words on why teams put a gateway in front of their model providers."}]
+
+    def call(user, budget, label):
+        hdr = {"Otari-End-User-Budget": budget} if budget else None
+        return gw.complete(cfg.worker, spend, label, max_tokens=400, api_key=cfg.user_key, extra={"user": user}, headers=hdr)
+
+    blocked = None
+    for i in range(25):
+        r = call(low, cfg.user_budgets[0], "feature:per_user_budget:%s#%d" % (low, i + 1))
+        _note(rep, "per_user_budgets", cfg.worker, r)
+        e = classify_block(r.status, r.body)
+        if e:
+            blocked = (r, e)
+            break
+        if r.status in RETRYABLE:
+            sleep(2.0)
+    if not blocked:
+        rep.failures["per_user_budgets"] = "end user %s was never blocked in 25 calls" % low
+        return
+    ok = _retry(lambda: call(high, cfg.user_budgets[1], "feature:per_user_budget:%s" % high), sleep)
+    _note(rep, "per_user_budgets", cfg.worker, ok)
+    if not ok.ok:
+        rep.failures["per_user_budgets"] = "end user %s was not served: HTTP %s" % (high, ok.status)
+        return
+    r, e = blocked
+    rep.enforcements.append((r.request_id, dataclasses.replace(e, rule="per_user_budget:%s" % low), r.log_ref))
+    rep.traces.append(FeatureTrace(FeatureKind.PER_USER_BUDGET, r.request_id or "per-user-%s" % r.log_ref,
+                                   "user=%s -> HTTP %d code=budget_exceeded upstream_called=%s [%s]; user=%s -> HTTP %d on the same key [%s]" % (
+                                       low, r.status, e.upstream_called, r.log_ref, high, ok.status, ok.log_ref), cfg.worker))

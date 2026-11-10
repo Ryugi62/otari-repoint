@@ -33,7 +33,8 @@ def build(settings, fresh=True):
 
 def cmd_features(gw, s, out):
     m_small, m_large, m_base = s.models
-    cfg = FeatureConfig(policy=s.policy, worker=m_small.selector, judge=m_large.selector, baseline=m_base.selector, capped_key=s.capped_key, guardrail_url=s.guardrail_url)
+    cfg = FeatureConfig(policy=s.policy, worker=m_small.selector, judge=m_large.selector, baseline=m_base.selector, capped_key=s.capped_key, guardrail_url=s.guardrail_url,
+                        mcp_server_id=s.mcp_server_id, user_key=s.service_key, users=s.end_users, user_budgets=s.end_user_budgets)
     rep = run_features(gw, cfg, time.sleep)
     with open("logs/features.jsonl", "w") as f:
         for t in rep.traces:

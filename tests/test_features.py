@@ -18,3 +18,11 @@ def test_six_used_features_score_60_and_duplicates_do_not_add():
 
 def test_trace_without_request_id_does_not_count():
     assert feature_score([FeatureTrace(kind=FeatureKind.GUARDRAILS, request_id="")]) == 0
+
+
+def test_rubric_lists_eight_features_and_any_six_used_score_60_with_cap():
+    assert len(list(FeatureKind)) == 8 and {"mcp_integrations", "per_user_budgets"} <= {k.value for k in FeatureKind}
+    four = traces(FeatureKind.ROUTING_FALLBACK, FeatureKind.BUDGET, FeatureKind.MULTI_MODEL_ROLES, FeatureKind.GUARDRAILS)
+    assert feature_score(four) == 40
+    assert feature_score(four + traces(FeatureKind.MCP, FeatureKind.PER_USER_BUDGET)) == 60
+    assert feature_score(traces(*FeatureKind)) == 60

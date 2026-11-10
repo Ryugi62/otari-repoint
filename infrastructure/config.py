@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple, Tuple
 
 from domain.tasks import ModelRef
 
@@ -20,6 +20,14 @@ class Settings:
     models: List[ModelRef]
     policy: str
     guardrail_url: Optional[str] = None
+    mcp_server_id: Optional[str] = None
+    service_key: Optional[str] = None
+    end_users: Tuple[str, str] = ("agent-low", "agent-high")
+    end_user_budgets: Tuple[Optional[str], Optional[str]] = (None, None)
+    mcp_server_id: Optional[str] = None
+    service_key: Optional[str] = None
+    end_users: Tuple[str, str] = ("agent-low", "agent-high")
+    end_user_budgets: Tuple[Optional[str], Optional[str]] = (None, None)
 
 
 DEFAULT_MODELS = "gemma_small:gemma-4-26b-a4b-it:worker,gemma_large:gemma-4-31b-it:judge,baseline:gemini-3.5-flash-lite:baseline"
@@ -50,7 +58,18 @@ def load() -> Settings:
         models=models,
         policy=env.get("REPOINT_POLICY", "fb"),
         guardrail_url=env.get("REPOINT_GUARDRAIL_URL") or None,
+        mcp_server_id=env.get("REPOINT_MCP_SERVER_ID") or None,
+        service_key=env.get("OTARI_SERVICE_KEY") or None,
+        end_users=_pair(env.get("REPOINT_END_USERS"), ("agent-low", "agent-high")),
+        end_user_budgets=_pair(env.get("REPOINT_END_USER_BUDGETS"), (None, None)),
     )
+
+
+def _pair(raw, default):
+    if not raw:
+        return default
+    a, b = [x.strip() for x in raw.split(",")]
+    return (a, b)
 
 
 def save_run_models(path: str, models: List[ModelRef]) -> None:
