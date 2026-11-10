@@ -68,7 +68,7 @@ R3 and R4 are measured, not enforced: Otari has no feature in this run that bloc
 
 ## The port table: 12 tasks x 3 models, deterministic checks
 
-`pass` = the check accepted the answer. `fail` = the model answered and the check rejected it. `blocked` = the gateway or upstream returned an error on all 6 tries, so there is nothing to judge (this is availability, not model quality).
+`pass` = the check accepted the answer. `fail` = the model answered and the check rejected it. `blocked` = the gateway or upstream returned an error on all 6 tries (the one blocked cell was retried once more afterwards and failed again), so there is nothing to judge (this is availability, not model quality).
 
 <!-- AUTOGEN:matrix:start -->
 | task | rule family | gemma-4-26b-a4b-it (worker) | gemma-4-31b-it (judge) | gemini-3.5-flash-lite (baseline) |
@@ -88,14 +88,22 @@ R3 and R4 are measured, not enforced: Otari has no feature in this run that bloc
 | **pass** | | 12/12 | 11/12 | 12/12 |
 <!-- AUTOGEN:matrix:end -->
 
-Full per-cell answers: `results/matrix.json`. The "where it breaks" list: `results/matrix.md`. Roles: the worker model answers the tasks, the judge model is a second, larger open-weight model used for the "worker answered, judge verifies" call (feature 5) and as a second column in the matrix; the baseline column is a **commercial** Gemini model, shown only to make the "port" visible and **not counted as open-weight**. No verdict is produced by a model: every pass/fail comes from a pure function in `domain/catalog.py`. Matrix verdicts are all decided by code. A model-decided verdict exists only in the feature-5 worker/judge demonstration call and in the judge experiment below, which has **not been completed** in this snapshot.
+Full per-cell answers: `results/matrix.json`. The "where it breaks" list: `results/matrix.md`. Roles: the worker model answers the tasks, the judge model is a second, larger open-weight model used for the "worker answered, judge verifies" call (feature 5) and as a second column in the matrix; the baseline column is a **commercial** Gemini model, shown only to make the "port" visible and **not counted as open-weight**. No verdict is produced by a model: every pass/fail comes from a pure function in `domain/catalog.py`. Matrix verdicts are all decided by code. A model-decided verdict exists only in the feature-5 worker/judge demonstration call and in the judge experiment below, whose result is below.
 
 ### Can the larger open-weight model replace the check? (judge agreement)
 
 The judge model (`gemma-4-31b-it`) is shown each task with an answer and must reply CORRECT or WRONG. Ground truth is the deterministic check, so the model's verdicts are scored, not trusted.
 
 <!-- AUTOGEN:judge:start -->
-**Not measured in the committed run**: `python3 -m infrastructure.cli judge` (part of `run-all`) was interrupted when the local container runtime stopped; no model-decided verdicts exist yet, so this snapshot has zero.
+| measure | count |
+|---|---|
+| answers shown to the judge model (12 real worker answers that passed the check + 12 known-bad answers, one per task) | 24 |
+| verdicts decided by the model alone (`gemma_large:gemma-4-31b-it`) | 24 |
+| of those, agreeing with the deterministic check | 24 |
+| known-bad answers the judge accepted as CORRECT | 0 |
+| good answers the judge rejected as WRONG | 0 |
+| not decided: blocked by gateway/upstream errors after 6 tries | 0 |
+| not decided: unparseable reply | 0 |
 <!-- AUTOGEN:judge:end -->
 
 ### What broke (upstream reliability, as seen at the gateway)
@@ -104,7 +112,7 @@ The judge model (`gemma-4-31b-it`) is shown each task with an answer and must re
 | provider (as named in the gateway config) | HTTP 200 | HTTP 5xx from upstream |
 |---|---|---|
 | baseline | 32 | 0 |
-| gemma_large | 14 | 21 |
+| gemma_large | 38 | 33 |
 | gemma_small | 14 | 4 |
 <!-- AUTOGEN:providers:end -->
 
