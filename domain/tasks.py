@@ -20,7 +20,7 @@ class ModelRef:
 
     @property
     def selector(self) -> str:
-        return "%s:%s" % (self.provider, self.model)
+        return "%s:%s" % (self.provider, self.model) if self.provider else self.model  # bare hosted catalog id has no provider part
 
 
 @dataclass(frozen=True)

@@ -20,12 +20,12 @@ FEATURE_LABEL = {
 
 
 CALL = {
-    "routing_fallback": 'model="fb" (policy: retired model, then gemma-4-26b, then gemma-4-31b)',
+    "routing_fallback": 'model="fb" (workspace routing policy: unfunded catalog model first, then gemma-4-26b, then gemma-4-31b)',
     "web_fetch": 'tools=[{"type":"otari_web_fetch"}]',
     "code_execution": 'tools=[{"type":"otari_code_execution"}]',
-    "budget": "API key with a $0.0006 ceiling, repeated until blocked",
-    "multi_model_roles": "worker call, then judge call, different providers",
-    "guardrails": 'guardrails=[{"profile":"prompt-injection","mode":"block"}]',
+    "budget": "API key of a workspace with a $0.0006 spend ceiling, repeated until blocked",
+    "multi_model_roles": "worker call, then judge call, two different open-weight models",
+    "guardrails": 'guardrails=[{"profile":"prompt-injection","mode":"block","url":"<guardrail service>"}]',
 }
 
 

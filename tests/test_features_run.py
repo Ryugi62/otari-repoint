@@ -57,3 +57,50 @@ def test_unused_feature_gets_no_trace_and_a_named_failure():
 def test_no_capped_key_means_no_budget_trace():
     rep = run_features(Fake(), FeatureConfig("fb", "a:b", "c:d", "e:f", capped_key=None), sleep=lambda s: None)
     assert FeatureKind.BUDGET not in {t.kind for t in rep.traces} and "budget" in rep.failures
+
+
+def test_same_provider_name_but_different_models_counts_as_distinct_roles():
+    class SameProv(Fake):
+        def complete(self, model, messages, label, **kw):
+            r = super().complete(model, messages, label, **kw)
+            if label.startswith("feature:roles"):
+                r.headers.update({"otari-provider": "gemini", "otari-model": "m-" + ("w" if "worker" in label else "j")})
+            return r
+    rep = run_features(SameProv(), CFG, sleep=lambda s: None)
+    assert FeatureKind.MULTI_MODEL_ROLES in {t.kind for t in rep.traces}
+
+
+def test_same_model_twice_is_not_distinct_roles():
+    class Same(Fake):
+        def complete(self, model, messages, label, **kw):
+            r = super().complete(model, messages, label, **kw)
+            if label.startswith("feature:roles"):
+                r.headers.update({"otari-provider": "gemini", "otari-model": "same"})
+            return r
+    rep = run_features(Same(), CFG, sleep=lambda s: None)
+    assert "multi_model_roles" in rep.failures
+
+
+def test_guardrail_url_is_sent_with_the_guardrail_entry():
+    seen = []
+
+    class Rec(Fake):
+        def complete(self, model, messages, label, **kw):
+            if kw.get("guardrails"):
+                seen.append(kw["guardrails"][0])
+            return super().complete(model, messages, label, **kw)
+    cfg = FeatureConfig("fb", "gemma_small:x", "gemma_large:y", "baseline:z", capped_key="tk-capped", guardrail_url="https://g.example")
+    run_features(Rec(), cfg, sleep=lambda s: None)
+    assert seen and all(g.get("url") == "https://g.example" for g in seen)
+
+
+def test_budget_probe_asks_for_a_long_answer_so_the_ceiling_is_reached_in_few_calls():
+    seen = []
+
+    class Rec(Fake):
+        def complete(self, model, messages, label, **kw):
+            if label.startswith("feature:budget"):
+                seen.append((messages[0]["content"], kw.get("max_tokens")))
+            return super().complete(model, messages, label, **kw)
+    run_features(Rec(), CFG, sleep=lambda s: None)
+    assert seen and "150 words" in seen[0][0] and seen[0][1] >= 300

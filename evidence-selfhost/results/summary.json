@@ -1,0 +1,225 @@
+{
+ "features": {
+  "score": 60,
+  "used": [
+   "routing_fallback",
+   "web_fetch",
+   "code_execution",
+   "budget",
+   "multi_model_roles",
+   "guardrails"
+  ],
+  "failures": {},
+  "attempts": [
+   {
+    "feature": "routing_fallback",
+    "model": "fb",
+    "status": 200,
+    "request_id": "6a0969f5-0ab7-4e77-8d72-28d239e58b3a",
+    "log_ref": "http.jsonl:1"
+   },
+   {
+    "feature": "web_fetch",
+    "model": "gemma_large:gemma-4-31b-it",
+    "status": 200,
+    "request_id": "eae91a90-fdc2-456b-9fd5-51694d9df44c",
+    "log_ref": "http.jsonl:2"
+   },
+   {
+    "feature": "code_execution",
+    "model": "gemma_large:gemma-4-31b-it",
+    "status": 502,
+    "request_id": "30c71d1e-7244-44ae-9572-e494f8c4de56",
+    "log_ref": "http.jsonl:6"
+   },
+   {
+    "feature": "code_execution",
+    "model": "gemma_large:gemma-4-31b-it",
+    "status": 502,
+    "request_id": "ff1114df-6565-4b2f-951b-48b461c5c00f",
+    "log_ref": "http.jsonl:10"
+   },
+   {
+    "feature": "code_execution",
+    "model": "gemma_small:gemma-4-26b-a4b-it",
+    "status": 200,
+    "request_id": "0d281a7e-d536-4a83-90ef-704a6ef8b213",
+    "log_ref": "http.jsonl:11"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "2f1279c1-be77-4158-adc6-39367f1b1b13",
+    "log_ref": "http.jsonl:13"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "396ec56c-c0e5-40d3-bb43-dd5ede44b446",
+    "log_ref": "http.jsonl:14"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "e57944fa-b98f-486f-8b56-b5f188f2d018",
+    "log_ref": "http.jsonl:15"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "bcdcd72c-7271-4b92-bad1-370e739bd4f5",
+    "log_ref": "http.jsonl:16"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "c3009f83-b7d2-4472-af68-47024044c61c",
+    "log_ref": "http.jsonl:17"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "c9e4bb96-f2fe-4174-941d-57355c5a9fdb",
+    "log_ref": "http.jsonl:18"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "3f01637f-d00a-480e-b4d3-cdde0ccd3b74",
+    "log_ref": "http.jsonl:19"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "861a5cd9-8dfd-4a10-ab50-c23988d6b314",
+    "log_ref": "http.jsonl:20"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "365e3675-6d10-476c-937d-ae104b3e42f7",
+    "log_ref": "http.jsonl:21"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "652609fd-c6f9-4e84-b8f8-fb1e6fa583fc",
+    "log_ref": "http.jsonl:22"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "c61d27ab-5130-475c-908c-0b5967ac57f2",
+    "log_ref": "http.jsonl:23"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "5155ced9-4298-44f4-bafd-bc6458025d29",
+    "log_ref": "http.jsonl:24"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "643f9e7b-01ef-4a0a-8f89-54d893195535",
+    "log_ref": "http.jsonl:25"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "7386135b-c762-42bd-aa3a-b439a1f9976c",
+    "log_ref": "http.jsonl:26"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "ad7b8e1b-2e84-4bb1-89d8-c862738527fb",
+    "log_ref": "http.jsonl:27"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "7acebcf5-e239-415a-b4b1-40e51ed38aef",
+    "log_ref": "http.jsonl:28"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "7e158f46-4026-4689-aa69-6b09078e38ec",
+    "log_ref": "http.jsonl:29"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "7f2f2f28-3422-465e-ae64-061e277dbc77",
+    "log_ref": "http.jsonl:30"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "d3693e37-2e9d-464c-afdd-bc5302f5a72f",
+    "log_ref": "http.jsonl:31"
+   },
+   {
+    "feature": "budget",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 403,
+    "request_id": "9f9fafe4-c34d-4e0e-ad1f-874d8b3c116e",
+    "log_ref": "http.jsonl:32"
+   },
+   {
+    "feature": "multi_model_roles",
+    "model": "gemma_small:gemma-4-26b-a4b-it",
+    "status": 200,
+    "request_id": "4f234609-b7b4-4dc6-bd59-176a2147ed21",
+    "log_ref": "http.jsonl:34"
+   },
+   {
+    "feature": "multi_model_roles",
+    "model": "gemma_large:gemma-4-31b-it",
+    "status": 200,
+    "request_id": "3ac8120a-0dfe-4b06-86c4-851af17a9406",
+    "log_ref": "http.jsonl:35"
+   },
+   {
+    "feature": "guardrails",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 403,
+    "request_id": "751ecf83-64c0-41a4-a193-20c036138999",
+    "log_ref": "http.jsonl:36"
+   },
+   {
+    "feature": "guardrails",
+    "model": "baseline:gemini-3.5-flash-lite",
+    "status": 200,
+    "request_id": "763885bc-da97-416f-bb32-4c772dfd0521",
+    "log_ref": "http.jsonl:37"
+   }
+  ]
+ },
+ "matrix": {
+  "gemma_small:gemma-4-26b-a4b-it": "12/12",
+  "gemma_large:gemma-4-31b-it": "9/12",
+  "baseline:gemini-3.5-flash-lite": "12/12"
+ },
+ "finished": "2026-11-10T03:12:31+0000"
+}

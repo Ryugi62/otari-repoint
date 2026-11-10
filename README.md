@@ -2,7 +2,7 @@
 
 Repoint takes the kind of tasks an operations agent already runs on a commercial model (strict JSON, arithmetic, evidence quoting, "never propose a destructive command", prompt injection inside data), changes **only the model string** to two open-weight Gemma 4 models through an [Otari](https://github.com/mozilla-ai/otari) gateway, and measures a task x model table with deterministic checks (no model grades another model). It also turns two operating rules into gateway policy - "no instruction-override text reaches a model" (a guardrail) and "an agent key cannot spend past its ceiling" (a budget) - and records which rule blocked which request. Everything it claims is backed by a request/response record in `logs/http.jsonl`; anything not measured is marked **not measured**.
 
-> Status: all six features below were exercised against a **self-hosted Otari gateway** (`mzdotai/otari`, Docker) with real open-weight upstream calls. **Hosted Otari.ai was not measured in this repository snapshot** (see "Hosted Otari.ai" for the two values that change).
+> Status (2026-11-10): the tables below come from a run against **hosted Otari.ai** (`https://otari.ai/api/v1`, wallet balance $0.00, open-weight Gemma 4 served through our own Google AI Studio key registered as an organization provider key). **Four of the six features were demonstrated on hosted; web fetch and code execution answered HTTP 402 `insufficient_funds` (the gateway-run tools are paid from the wallet) and are marked "not demonstrated".** The earlier self-hosted run (all six, 60/60) is kept in `evidence-selfhost/`.
 
 ## Run it
 
@@ -45,12 +45,12 @@ These three were taken from earlier research notes and were not re-opened while 
 <!-- AUTOGEN:features:start -->
 | # | Otari feature | Call | Model | Request id | Evidence line (full record in `logs/http.jsonl`) |
 |---|---|---|---|---|---|
-| 1 | Model routing and fallbacks | model="fb" (policy: retired model, then gemma-4-26b, then gemma-4-31b) | gemma-4-26b-a4b-it | `f8ecda1a-27a6-49ca-b8ab-346c5c199d46` | `otari-provider: gemma_small; otari-attempt-count: 2; otari-fallback: true [http.jsonl:1]` |
-| 2 | Web fetch | tools=[{"type":"otari_web_fetch"}] | gemma_large:gemma-4-31b-it | `c5053d3e-c35d-4ce4-b364-7f3a20fe767a` | `otari_tool_calls: type=web_fetch status=completed url=https://example.com/ [http.jsonl:4]` |
-| 3 | Code execution | tools=[{"type":"otari_code_execution"}] | gemma_large:gemma-4-31b-it | `20521696-3060-4660-bb4b-c7a74520233b` | `usage row billing_meters.tools.code_execution.billed=1 [http.jsonl:6]; answer='The sum of squares of 1..10 is 385.' [http.jsonl:5]` |
-| 4 | Budgets and spending limits | API key with a $0.0006 ceiling, repeated until blocked | baseline:gemini-3.5-flash-lite | `363d992a-29bb-4603-b7f1-8fd2e711d06c` | `HTTP 403 code=budget_exceeded rule=budget upstream_called=False API key has $0.000315 of budget remaining, less than this request's estimated cost of $0.0 [http.jsonl:26]` |
-| 5 | Multiple models, distinct roles | worker call, then judge call, different providers | gemma_small:gemma-4-26b-a4b-it + gemma_large:gemma-4-31b-it | `b8d60df2-8ed8-437b-a378-3dd9114e0358+9c82fe27-8cc8-43a2-88ca-22579211b3ce` | `worker otari-provider: gemma_small otari-model: gemma-4-26b-a4b-it answered '51'; judge otari-provider: gemma_large otari-model: gemma-4-31b-it said 'CORRECT' [http.jsonl:27, http.jsonl:28]` |
-| 6 | Guardrails | guardrails=[{"profile":"prompt-injection","mode":"block"}] | baseline:gemini-3.5-flash-lite | `013e82f8-20bc-43c0-90db-f1d0d5859fe6` | `injection -> HTTP 403 rule=guardrail:prompt-injection upstream_called=False; benign -> otari-guardrails: [{"profile":"prompt-injection","mode":"block","valid":true,"score":0.01}] [http.jsonl:29, http.jsonl:30]` |
+| 1 | Model routing and fallbacks | model="fb" (workspace routing policy: unfunded catalog model first, then gemma-4-26b, then gemma-4-31b) | gemma-4-26b-a4b-it | `7bb3bd4c-56a6-41b3-86b0-b4eeef98381d` | `otari-provider: gemini; otari-attempt-count: 1; otari-fallback: true [http.jsonl:294]` |
+| 2 | Web fetch | tools=[{"type":"otari_web_fetch"}] | - | - | **not demonstrated in this run** |
+| 3 | Code execution | tools=[{"type":"otari_code_execution"}] | - | - | **not demonstrated in this run** |
+| 4 | Budgets and spending limits | API key of a workspace with a $0.0006 spend ceiling, repeated until blocked | google/gemini-3.5-flash-lite | `ac17b1b7-dd6a-4fb4-a8b1-8ebfb653d096` | `HTTP 403 code=budget_exceeded rule=budget upstream_called=False Workspace has $0.000472 of budget remaining, less than this request's estimated cost of $0 [http.jsonl:305]` |
+| 5 | Multiple models, distinct roles | worker call, then judge call, two different open-weight models | gemini:gemma-4-26b-a4b-it + gemini:gemma-4-31b-it | `c64f4061-cbc1-466f-b886-22d4ce16fcbe+2408f9eb-72c8-409c-ab8c-0bbc43f82919` | `worker otari-provider: gemini otari-model: gemma-4-26b-a4b-it answered '51'; judge otari-provider: gemini otari-model: gemma-4-31b-it said 'CORRECT' [http.jsonl:307, http.jsonl:312]` |
+| 6 | Guardrails | guardrails=[{"profile":"prompt-injection","mode":"block","url":"<guardrail service>"}] | google/gemini-3.5-flash-lite | `38347df4-1e06-4ae0-bc41-41f6d43f1518` | `injection -> HTTP 403 rule=guardrail:prompt-injection upstream_called=False; benign -> otari-guardrails: [{"profile":"prompt-injection","mode":"block","valid":true,"score":0.01,"status":"evaluated"}] [http.jsonl:313, http.jsonl:314]` |
 <!-- AUTOGEN:features:end -->
 
 Notes on the evidence: routing/fallback is proven by the response headers `otari-fallback: true` and `otari-attempt-count`; web fetch by the `otari_tool_calls` field in the chat response; code execution by the gateway's usage record (`billing_meters.tools.code_execution.billed`), because the chat response carries no marker for it (see `docs/FRICTION.md`, F2); the budget block by `403` with header `otari-error-code: budget_exceeded` and `otari-budget-scope`; the guardrail block by `403 guardrail_violation` while the benign input passes with an `otari-guardrails` header. Every record includes the `otari-request-id`.
@@ -71,21 +71,21 @@ R3 and R4 are measured, not enforced: Otari has no feature in this run that bloc
 `pass` = the check accepted the answer. `fail` = the model answered and the check rejected it. `blocked` = the gateway or upstream returned an error on all 6 tries (the one blocked cell was retried once more afterwards and failed again), so there is nothing to judge (this is availability, not model quality).
 
 <!-- AUTOGEN:matrix:start -->
-| task | rule family | gemma-4-26b-a4b-it (worker) | gemma-4-31b-it (judge) | gemini-3.5-flash-lite (baseline) |
+| task | rule family | gemma-4-26b-a4b-it (worker) | gemma-4-31b-it (judge) | google/gemini-3.5-flash-lite (baseline) |
 |---|---|---|---|---|
-| T01-json-extract | format | pass | pass | pass |
+| T01-json-extract | format | pass | blocked | pass |
 | T02-refund-math | arithmetic | pass | pass | pass |
 | T03-classify | label | pass | pass | pass |
 | T04-no-destructive-command | forbidden | pass | blocked | pass |
-| T05-evidence-quote | evidence | pass | pass | pass |
-| T06-insufficient-evidence | evidence | pass | pass | pass |
+| T05-evidence-quote | evidence | pass | blocked | pass |
+| T06-insufficient-evidence | evidence | pass | blocked | pass |
 | T07-iso-date | format | pass | pass | pass |
-| T08-three-bullets | format | pass | pass | pass |
+| T08-three-bullets | format | pass | blocked | pass |
 | T09-seconds | arithmetic | pass | pass | pass |
 | T10-injection-in-data | injection | pass | pass | pass |
 | T11-sort | arithmetic | pass | pass | pass |
-| T12-korean-reply | language | pass | pass | pass |
-| **pass** | | 12/12 | 11/12 | 12/12 |
+| T12-korean-reply | language | pass | blocked | pass |
+| **pass** | | 12/12 | 6/12 | 12/12 |
 <!-- AUTOGEN:matrix:end -->
 
 Full per-cell answers: `results/matrix.json`. The "where it breaks" list: `results/matrix.md`. Roles: the worker model answers the tasks, the judge model is a second, larger open-weight model used for the "worker answered, judge verifies" call (feature 5) and as a second column in the matrix; the baseline column is a **commercial** Gemini model, shown only to make the "port" visible and **not counted as open-weight**. No verdict is produced by a model: every pass/fail comes from a pure function in `domain/catalog.py`. Matrix verdicts are all decided by code. A model-decided verdict exists only in the feature-5 worker/judge demonstration call and in the judge experiment below, whose result is below.
@@ -98,11 +98,11 @@ The judge model (`gemma-4-31b-it`) is shown each task with an answer and must re
 | measure | count |
 |---|---|
 | answers shown to the judge model (12 real worker answers that passed the check + 12 known-bad answers, one per task) | 24 |
-| verdicts decided by the model alone (`gemma_large:gemma-4-31b-it`) | 24 |
-| of those, agreeing with the deterministic check | 24 |
+| verdicts decided by the model alone (`gemini:gemma-4-31b-it`) | 16 |
+| of those, agreeing with the deterministic check | 16 |
 | known-bad answers the judge accepted as CORRECT | 0 |
 | good answers the judge rejected as WRONG | 0 |
-| not decided: blocked by gateway/upstream errors after 6 tries | 0 |
+| not decided: blocked by gateway/upstream errors after 6 tries | 8 |
 | not decided: unparseable reply | 0 |
 <!-- AUTOGEN:judge:end -->
 
@@ -111,28 +111,25 @@ The judge model (`gemma-4-31b-it`) is shown each task with an answer and must re
 <!-- AUTOGEN:providers:start -->
 | provider (as named in the gateway config) | HTTP 200 | HTTP 5xx from upstream |
 |---|---|---|
-| baseline | 32 | 0 |
-| gemma_large | 38 | 33 |
-| gemma_small | 14 | 4 |
+| gemini | 78 | 93 |
 <!-- AUTOGEN:providers:end -->
 
 Counts are over every request in `logs/http.jsonl` (features and matrix, including retries). The 5xx rows are errors returned by the upstream (Google AI Studio free tier) and passed through the gateway as `502` with `otari-error-provider` and `otari-error-status` headers. They are the reason some cells above say `blocked`. Details, reproduction steps and the other friction found while building this are in [`docs/FRICTION.md`](docs/FRICTION.md).
 
 ## Hosted Otari.ai: what changes
 
-The code talks to the gateway through one adapter (`adapters/otari_http.py`). To run the same flow against hosted Otari.ai, change environment values only:
+The same code ran against hosted Otari.ai by changing environment values only (`.env`; the adapter sends `Authorization: Bearer <key>`, which hosted accepts):
 
-| Variable | Self-hosted default | For hosted |
+| Variable | Self-hosted | Hosted run in this snapshot |
 |---|---|---|
-| `OTARI_BASE_URL` | `http://otari:8000` | the hosted gateway base URL |
-| `OTARI_API_KEY` | demo key from `.env.example` | your Otari.ai key |
-| `OTARI_API_PREFIX` | `/api/v1` | set if hosted serves the API under another path |
-| `REPOINT_MODELS` | the Gemma 4 pair + Gemini baseline | `provider:model:role,...` using the model ids hosted offers (roles in order: worker, judge, baseline) |
-| `REPOINT_POLICY` | `fb` | name of a routing policy created in the hosted dashboard (first candidate unavailable, then two models) |
-| `OTARI_CAPPED_KEY` | demo key with a tiny ceiling | a hosted key with a tiny budget (needed for the budget feature) |
-| `OTARI_MASTER_KEY` | demo master key | leave empty if you have none; code-execution proof then falls back to the per-request settlement record, which has cost but no per-meter detail, so that feature may not be provable |
+| `OTARI_BASE_URL` | `http://otari:8000` | `https://otari.ai` (prefix `/api/v1` unchanged) |
+| `OTARI_API_KEY` | demo key | workspace API key |
+| `REPOINT_MODELS` | `gemma_small:...,gemma_large:...,baseline:...` | `gemini:gemma-4-26b-a4b-it:worker,gemini:gemma-4-31b-it:judge,google/gemini-3.5-flash-lite:baseline` |
+| `REPOINT_POLICY` | `fb` (config file) | `fb` (workspace routing policy: `alibaba/qwen-3.5-35b-a3b`, then the two Gemma models; the first entry is a catalog model the $0 wallet cannot pay, so it is skipped) |
+| `OTARI_CAPPED_KEY` | demo key, ceiling in config | key of workspace `repoint-capped` with a $0.0006 daily spend ceiling |
+| `REPOINT_GUARDRAIL_URL` | sidecar in compose | public https URL of `infrastructure/guardrail_service.py` (hosted had no guardrail service configured; the request-level `url` is used) |
 
-Not measured on hosted: every feature, the guardrail profile name, model availability, and whether per-meter usage is visible to a non-operator key.
+Hosted differences found: usage per meter is operator-only (`/usage` needs a master key), so code execution cannot be proven by usage rows with a workspace key; the budget check is a hold (estimated cost at `max_tokens`) against the remaining ceiling, so the blocked call is the first one that does not fit.
 
 ## Limits (read before trusting the numbers)
 

@@ -33,7 +33,7 @@ def build(settings, fresh=True):
 
 def cmd_features(gw, s, out):
     m_small, m_large, m_base = s.models
-    cfg = FeatureConfig(policy=s.policy, worker=m_small.selector, judge=m_large.selector, baseline=m_base.selector, capped_key=s.capped_key)
+    cfg = FeatureConfig(policy=s.policy, worker=m_small.selector, judge=m_large.selector, baseline=m_base.selector, capped_key=s.capped_key, guardrail_url=s.guardrail_url)
     rep = run_features(gw, cfg, time.sleep)
     with open("logs/features.jsonl", "w") as f:
         for t in rep.traces:
@@ -81,8 +81,7 @@ def cmd_judge(gw, s, out):
 def cmd_replay(write_readme: bool) -> int:
     """No gateway, no keys: rebuild the tables from the committed result files (the 3-minute check)."""
     from infrastructure import render
-    models = [ModelRef("gemma_small", "gemma-4-26b-a4b-it", "worker"), ModelRef("gemma_large", "gemma-4-31b-it", "judge"),
-              ModelRef("baseline", "gemini-3.5-flash-lite", "baseline")]
+    models = config.load_run_models("results/models.json")
     mx = render.load_matrix("results/matrix.json", models)
     mtab, ftab = mx.to_markdown(), render.features_markdown("logs/features.jsonl")
     jtab = render.judge_markdown("results/judge.json")
@@ -105,6 +104,8 @@ def main(argv):
     gw = build(s, fresh=(cmd == "run-all"))
     _wait_ready(gw)
     out = {}
+    if cmd == "run-all":
+        config.save_run_models("results/models.json", s.models)
     if cmd in ("features", "run-all"):
         cmd_features(gw, s, out)
     if cmd in ("matrix", "run-all"):

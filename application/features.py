@@ -22,6 +22,7 @@ class FeatureConfig:
     baseline: str               # commercial baseline (non open-weight) used only where open-weight models failed
     capped_key: Optional[str]   # API key with a tiny budget ceiling
     guardrail_profile: str = "prompt-injection"
+    guardrail_url: Optional[str] = None  # hosted: the public https endpoint of the guardrails service (request-level `url`)
 
 
 @dataclass
@@ -114,10 +115,11 @@ def run_features(gw: GatewayPort, cfg: FeatureConfig, sleep: Callable[[float], N
         rep.failures["code_execution"] = "no usage row showed a billed code_execution call"
 
     # 4) budget: a key whose ceiling is tiny is stopped before the provider is called
+    spend = [{"role": "user", "content": "Write a paragraph of about 150 words on why teams put a gateway in front of their model providers."}]
     if cfg.capped_key:
         blocked = None
         for i in range(25):
-            r = gw.complete(cfg.baseline, ask, "feature:budget#%d" % (i + 1), max_tokens=100, api_key=cfg.capped_key)
+            r = gw.complete(cfg.baseline, spend, "feature:budget#%d" % (i + 1), max_tokens=400, api_key=cfg.capped_key)
             _note(rep, "budget", cfg.baseline, r)
             e = classify_block(r.status, r.body)
             if e:
@@ -141,10 +143,12 @@ def run_features(gw: GatewayPort, cfg: FeatureConfig, sleep: Callable[[float], N
     _note(rep, "multi_model_roles", cfg.worker, w)
     if w.ok:
         j = _retry(lambda: gw.complete(cfg.judge, [{"role": "user", "content": "A worker model was asked: %s It answered: %s. Is that correct? Reply with CORRECT or WRONG only." % (prompt, w.text().strip()[:40])}],
-                                   "feature:roles:judge", max_tokens=512), sleep)
+                                   "feature:roles:judge", max_tokens=512), sleep, tries=8)
         _note(rep, "multi_model_roles", cfg.judge, j)
         pw, pj = w.headers.get("otari-provider"), j.headers.get("otari-provider")
-        if j.ok and pw and pj and pw != pj:
+        mw, mj = w.headers.get("otari-model"), j.headers.get("otari-model")
+        # two roles are distinct when the serving (provider, model) pair differs; hosted names both Gemma 4 providers "gemini"
+        if j.ok and pw and pj and (pw, mw) != (pj, mj):
             rep.traces.append(FeatureTrace(FeatureKind.MULTI_MODEL_ROLES, w.request_id + "+" + j.request_id,
                                            'worker otari-provider: %s otari-model: %s answered %r; judge otari-provider: %s otari-model: %s said %r [%s, %s]' % (
                                                pw, w.headers.get("otari-model"), w.text().strip()[:20], pj, j.headers.get("otari-model"), j.text().strip()[:20], w.log_ref, j.log_ref),
@@ -156,6 +160,8 @@ def run_features(gw: GatewayPort, cfg: FeatureConfig, sleep: Callable[[float], N
 
     # 6) guardrails: an injection is blocked before any model sees it; a benign input passes with a verdict header
     g = [{"profile": cfg.guardrail_profile, "mode": "block"}]
+    if cfg.guardrail_url:
+        g[0]["url"] = cfg.guardrail_url
     bad = gw.complete(cfg.baseline, [{"role": "user", "content": INJECTION}], "feature:guardrails:injection", guardrails=g, max_tokens=64)
     _note(rep, "guardrails", cfg.baseline, bad)
     e = classify_block(bad.status, bad.body)

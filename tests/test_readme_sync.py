@@ -5,7 +5,7 @@ import re
 import pytest
 
 from infrastructure import render
-from infrastructure.config import DEFAULT_MODELS, parse_models
+from infrastructure.config import load_run_models
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 NEEDED = ["README.md", "results/matrix.json", "logs/features.jsonl", "logs/http.jsonl"]
@@ -20,7 +20,7 @@ def block(text, name):
 def test_readme_blocks_equal_rendered_results():
     os.chdir(ROOT)
     text = open("README.md").read()
-    mx = render.load_matrix("results/matrix.json", parse_models(DEFAULT_MODELS))
+    mx = render.load_matrix("results/matrix.json", load_run_models("results/models.json"))
     assert block(text, "matrix") == mx.to_markdown()
     assert block(text, "features") == render.features_markdown("logs/features.jsonl")
     assert block(text, "providers") == render.provider_stats_markdown("logs/http.jsonl")

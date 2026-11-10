@@ -4,3 +4,4 @@ __pycache__/
 .env
 smoke/keys.env
 smoke/stub.pid
+.env.selfhost

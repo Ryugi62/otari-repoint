@@ -1,6 +1,7 @@
 """Environment-driven settings. Switching to hosted Otari.ai means changing OTARI_BASE_URL and OTARI_API_KEY only."""
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from typing import List, Optional
@@ -18,6 +19,7 @@ class Settings:
     workers: int
     models: List[ModelRef]
     policy: str
+    guardrail_url: Optional[str] = None
 
 
 DEFAULT_MODELS = "gemma_small:gemma-4-26b-a4b-it:worker,gemma_large:gemma-4-31b-it:judge,baseline:gemini-3.5-flash-lite:baseline"
@@ -28,7 +30,7 @@ def parse_models(spec: str) -> List[ModelRef]:
     out = []
     for item in spec.split(","):
         head, role = item.strip().rsplit(":", 1)
-        provider, model = head.split(":", 1)
+        provider, model = head.split(":", 1) if ":" in head else ("", head)
         out.append(ModelRef(provider, model, role))
     if [m.role for m in out] != ["worker", "judge", "baseline"]:
         raise ValueError("REPOINT_MODELS needs roles worker,judge,baseline in order")
@@ -47,4 +49,17 @@ def load() -> Settings:
         workers=int(env.get("REPOINT_WORKERS", "4")),
         models=models,
         policy=env.get("REPOINT_POLICY", "fb"),
+        guardrail_url=env.get("REPOINT_GUARDRAIL_URL") or None,
     )
+
+
+def save_run_models(path: str, models: List[ModelRef]) -> None:
+    """Remember which models a run used so `replay` renders the tables of that run, not of the defaults."""
+    with open(path, "w") as f:
+        json.dump([[m.provider, m.model, m.role] for m in models], f)
+
+
+def load_run_models(path: str) -> List[ModelRef]:
+    if not os.path.exists(path):
+        return parse_models(DEFAULT_MODELS)
+    return [ModelRef(p, m, r) for p, m, r in json.load(open(path))]
