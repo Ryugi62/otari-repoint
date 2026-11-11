@@ -22,6 +22,7 @@ class Settings:
     guardrail_url: Optional[str] = None
     mcp_server_id: Optional[str] = None
     service_key: Optional[str] = None
+    peruser_key: Optional[str] = None   # service key of a workspace without a spend ceiling, used only for per-user budgets
     end_users: Tuple[str, str] = ("agent-low", "agent-high")
     end_user_budgets: Tuple[Optional[str], Optional[str]] = (None, None)
     mcp_server_id: Optional[str] = None
@@ -60,6 +61,7 @@ def load() -> Settings:
         guardrail_url=env.get("REPOINT_GUARDRAIL_URL") or None,
         mcp_server_id=env.get("REPOINT_MCP_SERVER_ID") or None,
         service_key=env.get("OTARI_SERVICE_KEY") or None,
+        peruser_key=env.get("OTARI_PERUSER_KEY") or None,
         end_users=_pair(env.get("REPOINT_END_USERS"), ("agent-low", "agent-high")),
         end_user_budgets=_pair(env.get("REPOINT_END_USER_BUDGETS"), (None, None)),
     )

@@ -1,2 +1,3 @@
-{"request_id": "ac17b1b7-dd6a-4fb4-a8b1-8ebfb653d096", "rule": "budget", "status": 403, "upstream_called": false, "log_ref": "http.jsonl:305"}
-{"request_id": "38347df4-1e06-4ae0-bc41-41f6d43f1518", "rule": "guardrail:prompt-injection", "status": 403, "upstream_called": false, "log_ref": "http.jsonl:313"}
+{"request_id": "5b169394-f425-4677-ae3c-80589b6bf541", "rule": "budget", "status": 403, "upstream_called": false, "log_ref": "http.jsonl:427"}
+{"request_id": "ec90f856-ede3-4efe-b0be-b7c955c13664", "rule": "guardrail:prompt-injection", "status": 403, "upstream_called": false, "log_ref": "http.jsonl:434"}
+{"request_id": "cf23139e-d69b-47ed-b661-e2d2ceac3da9", "rule": "per_user_budget:agent-low", "status": 403, "upstream_called": false, "log_ref": "http.jsonl:437"}

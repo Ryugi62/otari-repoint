@@ -117,12 +117,12 @@ class FakeNew(Fake):
     def complete(self, model, messages, label, tools=None, guardrails=None, max_tokens=None, api_key=None, extra=None, headers=None):
         h = {"otari-request-id": "rid-" + label}
         if label.startswith("feature:mcp"):
-            assert extra == {"mcp_server_ids": ["srv-1"]}
+            assert extra == {"mcp_server_ids": ["srv-1"]} and api_key == "tk-service"  # the MCP server is stored in the service key's workspace
             return GatewayResponse(200, h, {"choices": [{"message": {"content": "2 rules"}}],
                                             "otari_tool_calls": [{"type": "mcp", "name": "rules__list_operating_rules", "status": "completed"}]}, "rid-m", "http.jsonl:8")
         if label.startswith("feature:per_user"):
             user = extra["user"]
-            assert api_key == "tk-service"
+            assert api_key == "tk-service" and model == "baseline:z"  # the open-weight models have rate 0, only a priced model can exhaust a budget
             self.spent[user] = self.spent.get(user, 0) + 1
             if user == "agent-low" and self.spent[user] > 2:
                 return GatewayResponse(403, h, {"detail": "End user budget exhausted", "code": "budget_exceeded"}, "rid-u", "http.jsonl:9")
